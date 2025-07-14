@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MJCET AI Chatbot</title>
+
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color", "Twemoji", sans-serif;
+    }
+    .typing .dots::after {
+      content: "";
+      display: inline-block;
+      animation: dots 1.2s steps(3, end) infinite;
+      vertical-align: bottom;
+      width: 1ch;
+      overflow: hidden;
+    }
+    @keyframes dots {
+      0%   { content: ""; }
+      33%  { content: "."; }
+      66%  { content: ".."; }
+      100% { content: "..."; }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+  <header class="w-full p-4 bg-blue-900 flex items-center justify-center">
+    <img src="logo.png" alt="MJCET Logo" class="h-12 mr-4" />
+    <h1 class="text-2xl font-semibold">MJCET AI Chatbot</h1>
+  </header>
+
+  <!-- 👇 Train the Bot Section -->
+  <section class="w-full max-w-3xl mx-auto p-4 bg-gray-800 rounded-b-xl">
+    <form id="train-form" enctype="multipart/form-data" class="flex flex-col gap-4">
+      <h2 class="text-lg font-semibold text-white">📄 Train the Chatbot with your data</h2>
+      <input type="file" name="file" accept=".txt" required class="bg-gray-700 p-2 rounded text-white" />
+      <button type="submit" class="bg-green-600 hover:bg-green-700 p-2 rounded text-white w-fit">Upload & Train</button>
+      <p id="train-status" class="text-sm text-green-400"></p>
+    </form>
+  </section>
+
+  <!-- 👇 Chat Container -->
+  <main class="flex-1 w-full max-w-3xl p-4 overflow-y-auto mx-auto" id="chat-container"></main>
+
+  <form id="chat-form" class="w-full max-w-3xl flex items-center gap-2 p-4 bg-gray-800 mx-auto">
+    <button type="button" id="mic-btn" class="text-2xl p-2 bg-gray-700 rounded-xl">🎤</button>
+    <input id="user-input" type="text" placeholder="Ask about MJCET..." class="flex-1 p-3 rounded-xl bg-gray-700 text-white" required />
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl">➡️</button>
+    <button type="button" id="speak-btn" class="text-2xl p-2 bg-gray-700 rounded-xl">🔊</button>
+  </form>
+
+  <audio id="notify-sound" preload="auto">
+    <source src="notify.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const backendChatUrl = "/chat";
+    const backendTrainUrl = "/train";
+    const chatContainer = document.getElementById("chat-container");
+    const input = document.getElementById("user-input");
+    const form = document.getElementById("chat-form");
+    const micBtn = document.getElementById("mic-btn");
+    const speakBtn = document.getElementById("speak-btn");
+    const trainForm = document.getElementById("train-form");
+    const trainStatus = document.getElementById("train-status");
+
+    let lastBotReply = "";
+
+    window.addEventListener("DOMContentLoaded", () => {
+      addMessage("bot", "👋 Hello! I'm MJCET AI Assistant. Ask me anything about the college.");
+    });
+
+    function addMessage(role, text, isTyping = false) {
+      const bubble = document.createElement("div");
+      bubble.className = `flex items-start my-4 ${role === "user" ? "justify-end" : "justify-start"}`;
+      bubble.innerHTML = `
+        <div class="max-w-[75%] p-3 rounded-2xl ${
+          role === "user" ? "bg-blue-600 text-white" : "bg-gray-700 text-white"
+        } ${isTyping ? "typing" : ""}">
+          ${isTyping ? '🤖 Typing<span class="dots"></span>' : text}
+          <div class="text-xs text-gray-300 mt-1">${new Date().toLocaleTimeString()}</div>
+        </div>
+      `;
+      chatContainer.appendChild(bubble);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function playNotification() {
+      const sound = document.getElementById("notify-sound");
+      if (sound) sound.play();
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = input.value.trim();
+      if (!msg) return;
+      addMessage("user", msg);
+      input.value = "";
+      lastBotReply = "";
+      addMessage("bot", "", true);
+      try {
+        const res = await fetch(backendChatUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+        const data = await res.json();
+        lastBotReply = data.reply;
+        chatContainer.lastChild.remove();
+        addMessage("bot", lastBotReply);
+        playNotification();
+      } catch {
+        chatContainer.lastChild.remove();
+        addMessage("bot", "⚠️ Error fetching response.");
+      }
+    });
+
+    micBtn.addEventListener("click", () => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return alert("🎙️ Voice recognition not supported.");
+      const rec = new SpeechRecognition();
+      rec.lang = "en-US";
+      rec.start();
+      rec.onresult = (e) => input.value = e.results[0][0].transcript;
+    });
+
+    speakBtn.addEventListener("mousedown", () => {
+      if (!lastBotReply) return;
+      const utter = new SpeechSynthesisUtterance(lastBotReply);
+      utter.lang = "en-US";
+      utter.pitch = 1;
+      utter.rate = 1;
+      speechSynthesis.speak(utter);
+    });
+
+    speakBtn.addEventListener("mouseup", () => {
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
+    });
+
+    // ✅ Train Bot Handler
+    trainForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(trainForm);
+      trainStatus.textContent = "⏳ Uploading...";
+      try {
+        const res = await fetch(backendTrainUrl, {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        trainStatus.textContent = "✅ " + data.message;
+      } catch {
+        trainStatus.textContent = "❌ Failed to train chatbot.";
+      }
+    });
+  </script>
+</body>
+</html>
