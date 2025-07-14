@@ -4,14 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MJCET AI Chatbot</title>
-
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                   "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color", "Twemoji", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color", "Twemoji", sans-serif;
     }
     .typing .dots::after {
       content: "";
@@ -36,17 +34,17 @@
     <h1 class="text-2xl font-semibold">MJCET AI Chatbot</h1>
   </header>
 
-  <!-- 👇 Train the Bot Section -->
-  <section class="w-full max-w-3xl mx-auto p-4 bg-gray-800 rounded-b-xl">
+  <!-- 🧠 Train Section -->
+  <section class="w-full max-w-3xl mx-auto p-4 bg-gray-800 rounded-b-xl mt-4">
     <form id="train-form" enctype="multipart/form-data" class="flex flex-col gap-4">
-      <h2 class="text-lg font-semibold text-white">📄 Train the Chatbot with your data</h2>
-      <input type="file" name="file" accept=".txt" required class="bg-gray-700 p-2 rounded text-white" />
+      <h2 class="text-lg font-semibold text-white">📂 Upload Training Files</h2>
+      <input type="file" name="files" multiple accept=".txt,.pdf,.docx" required class="bg-gray-700 p-2 rounded text-white" />
       <button type="submit" class="bg-green-600 hover:bg-green-700 p-2 rounded text-white w-fit">Upload & Train</button>
       <p id="train-status" class="text-sm text-green-400"></p>
     </form>
   </section>
 
-  <!-- 👇 Chat Container -->
+  <!-- 💬 Chat Section -->
   <main class="flex-1 w-full max-w-3xl p-4 overflow-y-auto mx-auto" id="chat-container"></main>
 
   <form id="chat-form" class="w-full max-w-3xl flex items-center gap-2 p-4 bg-gray-800 mx-auto">
@@ -144,11 +142,11 @@
       if (speechSynthesis.speaking) speechSynthesis.cancel();
     });
 
-    // ✅ Train Bot Handler
+    // 📤 Train Chatbot
     trainForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const formData = new FormData(trainForm);
-      trainStatus.textContent = "⏳ Uploading...";
+      trainStatus.textContent = "⏳ Uploading and processing...";
       try {
         const res = await fetch(backendTrainUrl, {
           method: "POST",
